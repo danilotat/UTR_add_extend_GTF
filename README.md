@@ -1,42 +1,28 @@
-# UTR_add_extend_GTF
+# Scope
 
 Provided tool will add explicit 3'UTR and extends it into a valid Ensembl GTF file. 
-This seems to be useful while working with 3'RNAseq.
 
+This is a general framework to play with GTF features resembling as close as possible the biological meaning of the features annotated within a GTF file. 
 
-The repository is composed by 3 script file:
+A 3'UTR is added only when a protein coding transcript does not terminate with a 3'UTR and has left space between the stop codon and its end. While this is a rare case for well annotated genomes, could be real for non-model organisms and other cases. If you find a cool use case, share with me. 
 
-**gtf_advanced_parser**
+The UTR extension is handled in a bit "brutal" way, where user define a maximum value for extension, which could be an integer or `max`  . The extension is done on the end of the given gene, at the end of the transcript whose end matches the gene's one (see the scheme for clarification) keeping a min distance from the next gene on the same contig. 
 
-Yet another gtf parser. This is intended to be more close to the biological meaning of a GTF file, so it works by creating OrderedDict of features by exploiting gene_id or transcript_id as indexes. So *genes*, *transcripts* and miscellaneous will be stored under the *gene_id* index; any other feature, like *exon*, *CDS*, *UTR* will be stored under the *transcript_id* index. If this script is executed as a standalone python script, it will add explicit 3'UTR and reformat the provided GTF by this scheme:
-For any gene:
+ **NOTE**: the extension is done only when <u>no other ORF are on the same region of a given gene.</u> For example, there's often the possibility to see a lncRNA annotated in the same region of a gene: in this case, no extension will be carried. 
 
-- gene
-- transcript
-- exons
-- CDS 
-- 5' UTR
-- 3' UTR
-- start & stop codons
-- miscellaneous
+<img src="scheme.png">
 
+## Usage
 
-**Extend_by_threshold_{fw-rev}.py**
+Clone the repo using 
 
-Using the scheme above, this script use a {fw-rev} only version of a GTF* to extend the 3' terminus of genes by a given threshold when possible. By possible it means that no overlap with exisisting genes will be added and, if an overlap already exists, it won't be extended. Obviously no coding sequence will be extended, so this could be done only into the untranslated region with 3' coordinates.
-It works by extending a gene, its transcript(s) with same end coordinates, its exon(s) with same end coordinates and its 3'UTR(s).
+`$ git clone https://github.com/danilotat/UTR_add_extend_GTF.git`  
 
+Or download files manually. 
+Then run the script using 
 
-*(please refer to the bash script to see how to automatically split the GTF and pass results to these two scripts)*
+``$ ./client.py --i input.gtf --o output.gtf --length 1000 --min_dist 20`` 
 
-**process_them**
+To keep track of the extended transcript and the respective length, you could use the specific argument to obtain a tabular separated file 
 
-
-Extremely sample bash script provided as a POC to see how to extend multiple times a valid GTF file using multiple threshold. Here a valid GTF is considered a file already processed with **gtf_advanced_parser**, like:
-
-	$ python3 gtf_advanced_parser.py --input Input.gtf --output Output.gtf
-
-
-
-
-
+``$ ./client.py --i input.gtf --o output.gtf --length 1000 --min_dist 20 --logs extension.log``  
