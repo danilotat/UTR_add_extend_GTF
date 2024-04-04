@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 class GTF_record(object):
     """
-    A GTF record is the first building block of the parser. 
+    A GTF record is the first building block of the parser.
     The attribute field is parsed resulting in a dict.
 
     Attributes
@@ -36,38 +36,50 @@ class GTF_record(object):
     is_coding(feat_dict)
         Check if a GTF record is coding.
     """
-    def __init__(self,chromosome,source,feature_type,start,end,score,strand,phase,attributes):
-        self.chromosome=str(chromosome)
-        self.source=source
-        self.feature_type=feature_type
-        self.start=int(start) 
-        self.end=int(end) 
-        self.score=score
-        self.strand=strand
-        self.phase=phase
-        self.length=abs(self.end - self.start)
+
+    def __init__(
+        self,
+        chromosome,
+        source,
+        feature_type,
+        start,
+        end,
+        score,
+        strand,
+        phase,
+        attributes,
+    ):
+        self.chromosome = str(chromosome)
+        self.source = source
+        self.feature_type = feature_type
+        self.start = int(start)
+        self.end = int(end)
+        self.score = score
+        self.strand = strand
+        self.phase = phase
+        self.length = abs(self.end - self.start)
         self.attributes = GTF_record.parse_attributes(attributes)
 
-    @staticmethod    
+    @staticmethod
     def parse_attributes(attributes):
         if isinstance(attributes, dict):
             return attributes
         else:
             feat_dict = {}
-            keyVal = attributes.split(';')[:-1]
+            keyVal = attributes.split(";")[:-1]
             for item in keyVal:
                 replItem = item.replace(' "', '="')
                 # populate the dict
                 try:
-                    k,v = replItem.split('=')
-                    rk = k.replace(' ','')
-                    vk = v.replace('"','')
+                    k, v = replItem.split("=")
+                    rk = k.replace(" ", "")
+                    vk = v.replace('"', "")
                     feat_dict[rk] = vk
                 except ValueError:
                     print(f"Unable to parse this attribute field\n{attributes}")
                     exit()
             return feat_dict
-        
+
     @staticmethod
     def is_coding(feat_dict: dict) -> bool:
         """
@@ -77,13 +89,13 @@ class GTF_record(object):
         ----------
         feat_dict : dict
             A dictionary of attributes from the GTF record.
-        
+
         Returns
         -------
         bool
             True if the record is protein coding, False otherwise.
         """
-        if feat_dict["gene_biotype"] == 'protein_coding':
+        if feat_dict["gene_biotype"] == "protein_coding":
             return True
         else:
             return False
@@ -97,9 +109,27 @@ class GTF_record(object):
         str
             The record as a string, separated by tabs.
         """
-        attributesAsStr = "; ".join([f'{k} "{v}"' for k,v in self.attributes.items()])
-        return '\t'.join([str(x) for x in [self.chromosome, self.source, self.feature_type, self.start, self.end, self.score, self.strand, self.phase, attributesAsStr]]) + '\n'
-    
+        attributesAsStr = "; ".join([f'{k} "{v}"' for k, v in self.attributes.items()])
+        return (
+            "\t".join(
+                [
+                    str(x)
+                    for x in [
+                        self.chromosome,
+                        self.source,
+                        self.feature_type,
+                        self.start,
+                        self.end,
+                        self.score,
+                        self.strand,
+                        self.phase,
+                        attributesAsStr,
+                    ]
+                ]
+            )
+            + "\n"
+        )
+
     def _update_length(self, strand, value):
         """
         Update the length of the transcript based on the 3'UTR extension
@@ -111,7 +141,7 @@ class GTF_record(object):
         value : int
             The value to update the terminal with. It can be either the start or the
             end, it'll be handled accordingly to the strand.
-        
+
         Raises
         ------
         ValueError
@@ -125,6 +155,7 @@ class GTF_record(object):
             self.length = abs(self.end - self.start)
         else:
             raise ValueError("The strand is not valid. Please use either '+' or '-'")
+
 
 class gene(GTF_record):
     """
@@ -146,16 +177,26 @@ class gene(GTF_record):
     _longest_transcript(transcripts)
         Return the ID of the longest transcript associated with the gene.
     """
+
     def __init__(self, gtf_record):
-        super().__init__(gtf_record.chromosome, gtf_record.source, gtf_record.feature_type,
-                         gtf_record.start, gtf_record.end, gtf_record.score, gtf_record.strand,gtf_record.phase, gtf_record.attributes)
+        super().__init__(
+            gtf_record.chromosome,
+            gtf_record.source,
+            gtf_record.feature_type,
+            gtf_record.start,
+            gtf_record.end,
+            gtf_record.score,
+            gtf_record.strand,
+            gtf_record.phase,
+            gtf_record.attributes,
+        )
         self.attributes = gtf_record.attributes
         self.iscoding = GTF_record.is_coding(self.attributes)
         self.transcripts = []
 
     def _add_transcript(self, transcript: str):
         self.transcripts.append(transcript)
-    
+
     def _longest_transcript(self, transcripts: dict) -> str:
         """
         Return the longest transcript for this gene.
@@ -176,13 +217,16 @@ class gene(GTF_record):
             transcript = transcripts[tid]
             lengths[tid] = transcript.length
         # sort by length
-        lengths = {k:v for k,v in sorted(lengths.items(), key=lambda x: x[1], reverse=True)}
+        lengths = {
+            k: v for k, v in sorted(lengths.items(), key=lambda x: x[1], reverse=True)
+        }
         return list(lengths.keys())[0]
+
 
 class transcript(GTF_record):
     """
     A transcript is a key class of the GTF parser. It has multiple elements associated with it including exons, CDSs, 3'UTR, 5'UTR, start-codon, stop-codon.
-    In our case it acts as a collector, under which you could collect all the associated features. 
+    In our case it acts as a collector, under which you could collect all the associated features.
 
     This class inherits from the GTF_record class and adds additional attributes and methods specific to transcripts. It acts as a collector for all associated features of a transcript, including exons, CDSs, 3'UTRs, 5'UTRs, start codons, and stop codons.
 
@@ -222,39 +266,51 @@ class transcript(GTF_record):
     _extend_three_prime_utr(geneEntry, next_record, extension_mode, min_distance=10)
         Extend the 3' UTR of the transcript based on the provided extension mode.
     """
+
     def __init__(self, gtf_record):
-        super().__init__(gtf_record.chromosome, gtf_record.source, gtf_record.feature_type,
-                         gtf_record.start, gtf_record.end, gtf_record.score, gtf_record.strand,gtf_record.phase, gtf_record.attributes)
-        self.gene_id = self.attributes['gene_id']
-        self.transcript_id = self.attributes['transcript_id']
+        super().__init__(
+            gtf_record.chromosome,
+            gtf_record.source,
+            gtf_record.feature_type,
+            gtf_record.start,
+            gtf_record.end,
+            gtf_record.score,
+            gtf_record.strand,
+            gtf_record.phase,
+            gtf_record.attributes,
+        )
+        self.gene_id = self.attributes["gene_id"]
+        self.transcript_id = self.attributes["transcript_id"]
         self.exons = []
         self.cdss = []
         self.threeprimeutrs = []
         self.fiveprimeutrs = []
         self.startcodon = []
         self.stopcodon = []
-    
+
     def _add_exon(self, exon: str):
         self.exons.append(exon)
-    
+
     def _add_cds(self, cds: str):
         self.cdss.append(cds)
-    
+
     def _add_threeprimeutr(self, threeprimeutr: GTF_record):
         self.threeprimeutrs.append(threeprimeutr)
-    
+
     def _add_fiveprimeutr(self, fiveprimeutr: str):
         self.fiveprimeutrs.append(fiveprimeutr)
-    
+
     def _add_startcodon(self, startcodon: str):
         self.startcodon.append(startcodon)
-    
+
     def _add_stopcodon(self, stopcodon: str):
         self.stopcodon.append(stopcodon)
-        
-    def _extend_three_prime_utr(self, geneEntry: gene, next_record, extension_mode, min_distance=10):
+
+    def _extend_three_prime_utr(
+        self, geneEntry: gene, next_record, extension_mode, min_distance=10
+    ):
         """
-        Knowing the downstream record, the 3' UTR could be then extended following 
+        Knowing the downstream record, the 3' UTR could be then extended following
         one of the parsable rules, passed via the `extension_mode` params.
 
         The extension mode could be:
@@ -288,7 +344,9 @@ class transcript(GTF_record):
         """
         if not isinstance(extension_mode, int):
             if not extension_mode in ["max", "min"]:
-                raise ValueError("The extension mode for the 3' UTR is not valid. Please use one of the following: 'max', 'min' or an integer.")
+                raise ValueError(
+                    "The extension mode for the 3' UTR is not valid. Please use one of the following: 'max', 'min' or an integer."
+                )
         # check that there's at least a CDS
         edited_len = 0
         if len(self.cdss) != 0:
@@ -297,7 +355,7 @@ class transcript(GTF_record):
                 # we could safely initialize both at the same value. It'll be adjusted later, if needed.
                 maximum_space = next_record.start - self.cdss[-1].end
                 if maximum_space < min_distance:
-                    return (self.attributes['transcript_id'], 0)
+                    return (self.attributes["transcript_id"], 0)
                 else:
                     if extension_mode == "max":
                         utr_start = self.cdss[-1].end
@@ -307,7 +365,7 @@ class transcript(GTF_record):
                             # the requested distance is higher than the available "space" on the chromosome.
                             # add just the minimum distance as requested.
                             # get the last cds
-                            utr_start = self.cdss[-1].end 
+                            utr_start = self.cdss[-1].end
                             utr_end = next_record.start - min_distance
                         else:
                             # we have enough space.
@@ -318,19 +376,31 @@ class transcript(GTF_record):
                     self._update_length(self.strand, utr_end)
                     geneEntry.end = utr_end
                     # initialize a GTF record and assign the novel 3'UTR
-                    ghostFeat = GTF_record(self.chromosome, self.source, "three_prime_utr", utr_start, utr_end, self.score, self.strand, self.phase, self.attributes)
+                    ghostFeat = GTF_record(
+                        self.chromosome,
+                        self.source,
+                        "three_prime_utr",
+                        utr_start,
+                        utr_end,
+                        self.score,
+                        self.strand,
+                        self.phase,
+                        self.attributes,
+                    )
                     self._add_threeprimeutr(ghostFeat)
-                    return (self.attributes['transcript_id'], edited_len)
+                    return (self.attributes["transcript_id"], edited_len)
             elif self.strand == "-":
                 maximum_space = self.cdss[-1].start - next_record.end
                 if maximum_space < min_distance:
-                    return (self.attributes['transcript_id'], 0)
+                    return (self.attributes["transcript_id"], 0)
                 else:
                     if extension_mode == "max":
                         utr_start = next_record.end + min_distance
                         utr_end = self.cdss[-1].start
                     if isinstance(extension_mode, int):
-                        if extension_mode > ((self.cdss[-1].start + min_distance) - next_record.end):
+                        if extension_mode > (
+                            (self.cdss[-1].start + min_distance) - next_record.end
+                        ):
                             utr_start = next_record.end + min_distance
                             utr_end = self.cdss[-1].start
                         else:
@@ -340,16 +410,26 @@ class transcript(GTF_record):
                     # adjust the transcript coord
                     self._update_length(self.strand, utr_start)
                     geneEntry.start = utr_start
-                    ghostFeat = GTF_record(self.chromosome, self.source, "three_prime_utr", utr_start, utr_end, self.score, self.strand, self.phase, self.attributes)
+                    ghostFeat = GTF_record(
+                        self.chromosome,
+                        self.source,
+                        "three_prime_utr",
+                        utr_start,
+                        utr_end,
+                        self.score,
+                        self.strand,
+                        self.phase,
+                        self.attributes,
+                    )
                     self._add_threeprimeutr(ghostFeat)
-                    return (self.attributes['transcript_id'], edited_len)
+                    return (self.attributes["transcript_id"], edited_len)
         else:
-            return (self.attributes['transcript_id'], edited_len)
+            return (self.attributes["transcript_id"], edited_len)
 
 
 class exon(GTF_record):
     """
-    An exon is a simpler entry. 
+    An exon is a simpler entry.
 
     Attributes
     ----------
@@ -360,12 +440,23 @@ class exon(GTF_record):
     exon_id : str
         The ID of the exon. This attribute is optional and its value may be None if the 'exon_id' attribute is not present in the GTF record.
     """
+
     def __init__(self, gtf_record):
-        super().__init__(gtf_record.chromosome, gtf_record.source, gtf_record.feature_type,
-                        gtf_record.start, gtf_record.end, gtf_record.score, gtf_record.strand,gtf_record.phase, gtf_record.attributes)
-        self.gene_id = self.attributes['gene_id']
-        self.transcript_id = self.attributes['transcript_id']
-        self.exon_id = self.attributes.get('exon_id')
+        super().__init__(
+            gtf_record.chromosome,
+            gtf_record.source,
+            gtf_record.feature_type,
+            gtf_record.start,
+            gtf_record.end,
+            gtf_record.score,
+            gtf_record.strand,
+            gtf_record.phase,
+            gtf_record.attributes,
+        )
+        self.gene_id = self.attributes["gene_id"]
+        self.transcript_id = self.attributes["transcript_id"]
+        self.exon_id = self.attributes.get("exon_id")
+
 
 class cds(GTF_record):
     """
@@ -380,12 +471,23 @@ class cds(GTF_record):
     exon_id : str
         The ID of the exon. This attribute is optional and its value may be None if the 'exon_id' attribute is not present in the GTF record.
     """
+
     def __init__(self, gtf_record):
-        super().__init__(gtf_record.chromosome, gtf_record.source, gtf_record.feature_type,
-                         gtf_record.start, gtf_record.end, gtf_record.score, gtf_record.strand,gtf_record.phase, gtf_record.attributes)
-        self.gene_id = self.attributes['gene_id']
-        self.transcript_id = self.attributes['transcript_id']
-        self.exon_id = self.attributes['exon_id']
+        super().__init__(
+            gtf_record.chromosome,
+            gtf_record.source,
+            gtf_record.feature_type,
+            gtf_record.start,
+            gtf_record.end,
+            gtf_record.score,
+            gtf_record.strand,
+            gtf_record.phase,
+            gtf_record.attributes,
+        )
+        self.gene_id = self.attributes["gene_id"]
+        self.transcript_id = self.attributes["transcript_id"]
+        self.exon_id = self.attributes["exon_id"]
+
 
 class threeprimeutr(GTF_record):
     """
@@ -400,12 +502,23 @@ class threeprimeutr(GTF_record):
     exon_id : str
         The ID of the exon. This attribute is optional and its value may be None if the 'exon_id' attribute is not present in the GTF record.
     """
+
     def __init__(self, gtf_record):
-        super().__init__(gtf_record.chromosome, gtf_record.source, gtf_record.feature_type,
-                         gtf_record.start, gtf_record.end, gtf_record.score, gtf_record.strand,gtf_record.phase, gtf_record.attributes)
-        self.gene_id = self.attributes['gene_id']
-        self.transcript_id = self.attributes['transcript_id']
-        self.exon_id = self.attributes.get('exon_id')
+        super().__init__(
+            gtf_record.chromosome,
+            gtf_record.source,
+            gtf_record.feature_type,
+            gtf_record.start,
+            gtf_record.end,
+            gtf_record.score,
+            gtf_record.strand,
+            gtf_record.phase,
+            gtf_record.attributes,
+        )
+        self.gene_id = self.attributes["gene_id"]
+        self.transcript_id = self.attributes["transcript_id"]
+        self.exon_id = self.attributes.get("exon_id")
+
 
 class fiveprimeutr(GTF_record):
     """
@@ -420,10 +533,19 @@ class fiveprimeutr(GTF_record):
     exon_id : str
         The ID of the exon. This attribute is optional and its value may be None if the 'exon_id' attribute is not present in the GTF record.
     """
+
     def __init__(self, gtf_record):
-        super().__init__(gtf_record.chromosome, gtf_record.source, gtf_record.feature_type,
-                         gtf_record.start, gtf_record.end, gtf_record.score, gtf_record.strand,gtf_record.phase, gtf_record.attributes)
-        self.gene_id = self.attributes['gene_id']
-        self.transcript_id = self.attributes['transcript_id']
-        self.exon_id = self.attributes['exon_id']
-    
+        super().__init__(
+            gtf_record.chromosome,
+            gtf_record.source,
+            gtf_record.feature_type,
+            gtf_record.start,
+            gtf_record.end,
+            gtf_record.score,
+            gtf_record.strand,
+            gtf_record.phase,
+            gtf_record.attributes,
+        )
+        self.gene_id = self.attributes["gene_id"]
+        self.transcript_id = self.attributes["transcript_id"]
+        self.exon_id = self.attributes["exon_id"]

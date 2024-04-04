@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+
 class TreeNode(object):
     """
     Basic entry for each gene ids
@@ -20,15 +21,17 @@ class TreeNode(object):
     __init__(geneID, start, end)
         Initialize a TreeNode object.
     """
+
     def __init__(self, geneID, start, end) -> None:
         self.geneID = geneID
         self.start = start
         self.end = end
         self.length = abs(self.end - self.start)
 
+
 class TreeBranch(object):
     """
-    This class represents a branch of the tree, specific for a strand of a chromosome. 
+    This class represents a branch of the tree, specific for a strand of a chromosome.
     Stores record in the form of TreeNode objects.
 
     Attributes
@@ -51,23 +54,30 @@ class TreeBranch(object):
     _query_next(geneID)
         Query the next TreeNode based on the gene ID.
     """
+
     def __init__(self, strand) -> None:
         self.strand = strand
         self.entries = {}
-    
+
     def _insert_record(self, record: TreeNode):
         self.entries[record.geneID] = (record.start, record.end)
-    
+
     def _sort_entries(self):
         """
         If strand is fw, sort by start
         Else, sort by end
         """
-        if self.strand == '+':
-            self.entries = {k: v for k, v in sorted(self.entries.items(), key=lambda item: item[1][0])}
-        if self.strand == '-':
-            self.entries = {k: v for k,v in sorted(self.entries.items(), key=lambda item: item[1][1])}
-    
+        if self.strand == "+":
+            self.entries = {
+                k: v
+                for k, v in sorted(self.entries.items(), key=lambda item: item[1][0])
+            }
+        if self.strand == "-":
+            self.entries = {
+                k: v
+                for k, v in sorted(self.entries.items(), key=lambda item: item[1][1])
+            }
+
     def _query_previous(self, geneID: str) -> TreeNode:
         """
         Given that the sorting is handled in different ways from forward and reverse,
@@ -77,12 +87,12 @@ class TreeBranch(object):
         ----------
         geneID : str
             The gene ID of the current TreeNode
-        
+
         Returns
         -------
         TreeNode
             The previous TreeNode of the current TreeNode
-        
+
         Raises
         ------
         ValueError
@@ -94,14 +104,15 @@ class TreeBranch(object):
         try:
             tid_idx = ids.index(geneID)
             try:
-                prev_tid = ids[tid_idx-1]
-                return TreeNode(prev_tid, self.entries[prev_tid][0], self.entries[prev_tid][1])
+                prev_tid = ids[tid_idx - 1]
+                return TreeNode(
+                    prev_tid, self.entries[prev_tid][0], self.entries[prev_tid][1]
+                )
             except IndexError:
                 return None
         except ValueError:
             raise ValueError(f"Gene ID {geneID} not found in the branch")
 
-    
     def _query_next(self, geneID: str) -> TreeNode:
         """
         Given that the sorting is handled in different ways from forward and reverse,
@@ -128,8 +139,10 @@ class TreeBranch(object):
         try:
             tid_idx = ids.index(geneID)
             try:
-                next_tid = ids[tid_idx+1]
-                return TreeNode(next_tid, self.entries[next_tid][0], self.entries[next_tid][1])
+                next_tid = ids[tid_idx + 1]
+                return TreeNode(
+                    next_tid, self.entries[next_tid][0], self.entries[next_tid][1]
+                )
             except IndexError:
                 return None
         except ValueError:
@@ -139,8 +152,8 @@ class TreeBranch(object):
 class BST(object):
     """
     Class for the dependency graph of the GTF file.
-    While the name was originally chosen because it'd use a binary search to retrieve previous and next item across the branch, now is just a collector. 
-    
+    While the name was originally chosen because it'd use a binary search to retrieve previous and next item across the branch, now is just a collector.
+
     It stores the gene_IDs and tuples of (start, end)
 
     Attributes
@@ -153,20 +166,15 @@ class BST(object):
         The strand that the tree belongs to
     branch : TreeBranch
         The branch of the tree
-    
+
     Methods
     -------
     __init__(chromosome, strand)
         Initialize a BST object.
     """
+
     def __init__(self, chromosome, strand) -> None:
         self.root = None
         self.chromosome = chromosome
         self.strand = strand
         self.branch = TreeBranch(self.strand)
-
-
-
-
-
-        

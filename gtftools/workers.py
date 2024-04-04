@@ -1,4 +1,4 @@
-#!/usr/bin/python3 
+#!/usr/bin/python3
 
 import itertools
 from .objects import *
@@ -28,28 +28,29 @@ def other_entries(entry: GTF_record, transcript_collection: dict):
         If the 'transcript_id' attribute is not found in the GTF record.
     """
     try:
-        transcript_id = entry.attributes['transcript_id']
+        transcript_id = entry.attributes["transcript_id"]
     except KeyError:
         print(entry.asStr())
         exit()
-    if entry.feature_type == 'exon':
+    if entry.feature_type == "exon":
         transcript_collection[transcript_id]._add_exon(entry)
-    if entry.feature_type == 'CDS':
+    if entry.feature_type == "CDS":
         transcript_collection[transcript_id]._add_cds(entry)
-    if entry.feature_type == 'five_prime_utr':
+    if entry.feature_type == "five_prime_utr":
         transcript_collection[transcript_id]._add_fiveprimeutr(entry)
-    if entry.feature_type == 'three_prime_utr':
+    if entry.feature_type == "three_prime_utr":
         transcript_collection[transcript_id]._add_threeprimeutr(entry)
-    if entry.feature_type == 'start_codon':
+    if entry.feature_type == "start_codon":
         transcript_collection[transcript_id]._add_startcodon(entry)
-    if entry.feature_type == 'stop_codon':
+    if entry.feature_type == "stop_codon":
         transcript_collection[transcript_id]._add_stopcodon(entry)
+
 
 def first_iteration(gtf: str) -> dict:
     """
     The first iteration is used just to create a dependancy graph of the GTF file, using the IDs of the transcripts.
     This is used to know which record comes before and after each item, and which transcript has missing UTR
-    
+
     Parameters
     ----------
     gtf : str
@@ -73,40 +74,54 @@ def first_iteration(gtf: str) -> dict:
     trees = {}
     genes = {}
     transcripts = {}
-    with open(gtf, 'r') as gtf_file:
+    with open(gtf, "r") as gtf_file:
         for line in gtf_file:
-            if line.startswith('#'):
+            if line.startswith("#"):
                 headers.append(line)
             else:
-                entry = GTF_record(*line.rstrip().split('\t'))
-                if entry.feature_type == 'gene':
+                entry = GTF_record(*line.rstrip().split("\t"))
+                if entry.feature_type == "gene":
                     if entry.chromosome in trees.keys():
                         if entry.strand in trees[entry.chromosome].keys():
                             # the tree already exists
                             trees[entry.chromosome][entry.strand].branch._insert_record(
-                                TreeNode(entry.attributes['gene_id'], entry.start, entry.end))
+                                TreeNode(
+                                    entry.attributes["gene_id"], entry.start, entry.end
+                                )
+                            )
                         else:
-                            # strand is seen for the first time 
+                            # strand is seen for the first time
                             trees[entry.chromosome][entry.strand] = BST(
                                 entry.chromosome, entry.strand
                             )
-                            trees[entry.chromosome][entry.strand].branch._insert_record(TreeNode(entry.attributes['gene_id'], entry.start, entry.end))
+                            trees[entry.chromosome][entry.strand].branch._insert_record(
+                                TreeNode(
+                                    entry.attributes["gene_id"], entry.start, entry.end
+                                )
+                            )
                     else:
                         # first time seen this chromosome
                         trees[entry.chromosome] = {}
                         trees[entry.chromosome][entry.strand] = BST(
-                                entry.chromosome, entry.strand)
-                        trees[entry.chromosome][entry.strand].branch._insert_record(TreeNode(entry.attributes['gene_id'], entry.start, entry.end))
-                    if entry.attributes['gene_id'] not in genes:
-                        genes[entry.attributes['gene_id']] = gene(entry)
+                            entry.chromosome, entry.strand
+                        )
+                        trees[entry.chromosome][entry.strand].branch._insert_record(
+                            TreeNode(
+                                entry.attributes["gene_id"], entry.start, entry.end
+                            )
+                        )
+                    if entry.attributes["gene_id"] not in genes:
+                        genes[entry.attributes["gene_id"]] = gene(entry)
                         continue
-                if entry.feature_type == 'transcript':
-                    transcripts[entry.attributes['transcript_id']] = transcript(entry)
+                if entry.feature_type == "transcript":
+                    transcripts[entry.attributes["transcript_id"]] = transcript(entry)
                     # populate the genes dictionary
-                    if entry.attributes['gene_id'] in genes.keys():
-                        genes[entry.attributes['gene_id']]._add_transcript(entry.attributes['transcript_id'])
+                    if entry.attributes["gene_id"] in genes.keys():
+                        genes[entry.attributes["gene_id"]]._add_transcript(
+                            entry.attributes["transcript_id"]
+                        )
                     else:
-                        raise IndexError('Malformed gtf')    
+                        raise IndexError("Malformed gtf")
                 else:
                     other_entries(entry, transcripts)
     # sort the trees
@@ -115,9 +130,10 @@ def first_iteration(gtf: str) -> dict:
             trees[chromosome][strand].branch._sort_entries()
     return headers, trees, genes, transcripts
 
+
 def add_utr(genes: dict, transcripts: dict):
     """
-    This function does the second iteration. 
+    This function does the second iteration.
     Add just UTRs to the transcripts
 
     Parameters
@@ -144,7 +160,7 @@ def add_utr(genes: dict, transcripts: dict):
                 transcript = transcripts[tid]
                 if len(transcript.threeprimeutrs) == 0:
                     # no UTR
-                    if transcript.strand == '+':
+                    if transcript.strand == "+":
                         # is forward
                         if len(transcript.stopcodon) > 0:
                             # there's a stop codon
@@ -155,14 +171,16 @@ def add_utr(genes: dict, transcripts: dict):
                                     GTF_record(
                                         transcript.exons[-1].chromosome,
                                         transcript.source,
-                                        'three_prime_utr',
+                                        "three_prime_utr",
                                         transcript.stopcodon[0].end,
                                         transcript.end,
                                         transcript.score,
                                         transcript.strand,
                                         transcript.phase,
-                                        transcript.attributes))
-                                added_utr[tid] = transcript.threeprimeutrs[-1].length 
+                                        transcript.attributes,
+                                    )
+                                )
+                                added_utr[tid] = transcript.threeprimeutrs[-1].length
                     else:
                         # is reverse
                         if len(transcript.stopcodon) > 0:
@@ -174,15 +192,18 @@ def add_utr(genes: dict, transcripts: dict):
                                     GTF_record(
                                         transcript.exons[-1].chromosome,
                                         transcript.source,
-                                        'three_prime_utr',
+                                        "three_prime_utr",
                                         transcript.start,
                                         transcript.stopcodon[0].start,
                                         transcript.score,
                                         transcript.strand,
                                         transcript.phase,
-                                        transcript.attributes))
+                                        transcript.attributes,
+                                    )
+                                )
                                 added_utr[tid] = transcript.threeprimeutrs[-1].length
-    return added_utr    
+    return added_utr
+
 
 def extend_utr(genes, transcripts, trees, extension_mode, min_dist):
     """
@@ -212,7 +233,7 @@ def extend_utr(genes, transcripts, trees, extension_mode, min_dist):
     AttributeError
         If `extension_mode` is neither an integer nor 'max'.
     """
-    if str(extension_mode) != 'max':
+    if str(extension_mode) != "max":
         try:
             extension_mode = int(extension_mode)
         except ValueError:
@@ -227,12 +248,19 @@ def extend_utr(genes, transcripts, trees, extension_mode, min_dist):
                 # IMPORTANT:
                 # we want to extend only the transcript which ends at the same position of the gene.
                 transcriptEntry = transcripts[tid]
-                if transcriptEntry.end == geneEntry.end and not tid in logged_infos.keys():
+                if (
+                    transcriptEntry.end == geneEntry.end
+                    and not tid in logged_infos.keys()
+                ):
                     # get the next record. we need the right tree to select from
-                    nextRecord = trees[transcriptEntry.chromosome][transcriptEntry.strand].branch._query_next(gene)
+                    nextRecord = trees[transcriptEntry.chromosome][
+                        transcriptEntry.strand
+                    ].branch._query_next(gene)
                     if nextRecord is not None:
                         # try the extension
-                        txid, ext_len = transcriptEntry._extend_three_prime_utr(geneEntry, nextRecord, extension_mode, min_dist)
+                        txid, ext_len = transcriptEntry._extend_three_prime_utr(
+                            geneEntry, nextRecord, extension_mode, min_dist
+                        )
                         if txid is not None:
                             logged_infos[txid] = ext_len
                     else:
@@ -240,9 +268,10 @@ def extend_utr(genes, transcripts, trees, extension_mode, min_dist):
                 else:
                     # the transcript ends before the gene end.
                     # just keep iterating.
-                    continue     
+                    continue
     return logged_infos
-    
+
+
 def recompose_gtf(genes, transcripts, out):
     """
     This function recompose the final gtf.
@@ -301,14 +330,14 @@ def chromosome_wise(gtf, outfile, extension_mode, min_distance, logfile=None):
         The path to the log file where the extension statistics will be written.
     """
     whole_logging = {}
-    outfile = open(outfile, 'w')
-    print('--'*20)
+    outfile = open(outfile, "w")
+    print("--" * 20)
     print(f"Starting to parse {gtf}")
-    print('--'*20)
-    with open(gtf, 'r') as gtf_file:
-        get_line = ((x.split('\t')[0], x) for x in gtf_file)
+    print("--" * 20)
+    with open(gtf, "r") as gtf_file:
+        get_line = ((x.split("\t")[0], x) for x in gtf_file)
         for chromosome, lines in itertools.groupby(get_line, lambda x: x[0]):
-            if chromosome.startswith('#'):
+            if chromosome.startswith("#"):
                 outfile.writelines([x[1] for x in lines])
             else:
                 print(f"Processing chromosome {chromosome}")
@@ -317,47 +346,62 @@ def chromosome_wise(gtf, outfile, extension_mode, min_distance, logfile=None):
                 genes = {}
                 transcripts = {}
                 for _, line in lines:
-                    entry = GTF_record(*line.rstrip().split('\t'))
-                    if entry.feature_type == 'gene':
+                    entry = GTF_record(*line.rstrip().split("\t"))
+                    if entry.feature_type == "gene":
                         if entry.strand in trees[entry.chromosome].keys():
                             # the tree already exists
                             trees[entry.chromosome][entry.strand].branch._insert_record(
-                                TreeNode(entry.attributes['gene_id'], entry.start, entry.end))
+                                TreeNode(
+                                    entry.attributes["gene_id"], entry.start, entry.end
+                                )
+                            )
                         else:
-                            # strand is seen for the first time 
+                            # strand is seen for the first time
                             trees[entry.chromosome][entry.strand] = BST(
                                 entry.chromosome, entry.strand
                             )
-                            trees[entry.chromosome][entry.strand].branch._insert_record(TreeNode(entry.attributes['gene_id'], entry.start, entry.end))
-                        if entry.attributes['gene_id'] not in genes:
-                            genes[entry.attributes['gene_id']] = gene(entry)
+                            trees[entry.chromosome][entry.strand].branch._insert_record(
+                                TreeNode(
+                                    entry.attributes["gene_id"], entry.start, entry.end
+                                )
+                            )
+                        if entry.attributes["gene_id"] not in genes:
+                            genes[entry.attributes["gene_id"]] = gene(entry)
                             continue
-                    if entry.feature_type == 'transcript':
-                        transcripts[entry.attributes['transcript_id']] = transcript(entry)
+                    if entry.feature_type == "transcript":
+                        transcripts[entry.attributes["transcript_id"]] = transcript(
+                            entry
+                        )
                         # populate the genes dictionary
-                        if entry.attributes['gene_id'] in genes.keys():
-                            genes[entry.attributes['gene_id']]._add_transcript(entry.attributes['transcript_id'])
+                        if entry.attributes["gene_id"] in genes.keys():
+                            genes[entry.attributes["gene_id"]]._add_transcript(
+                                entry.attributes["transcript_id"]
+                            )
                         else:
-                            raise IndexError('Malformed gtf')    
+                            raise IndexError("Malformed gtf")
                     else:
                         other_entries(entry, transcripts)
                 # sort the trees
-                for strand in trees[chromosome]:  
+                for strand in trees[chromosome]:
                     trees[chromosome][strand].branch._sort_entries()
                 # now the relevant data structures are ready
                 # let's do the extension
                 added_utr = add_utr(genes, transcripts)
-                print(f'Added {len(added_utr)} 3\' UTRs')
-                print('--'*20)
-                logged_infos = extend_utr(genes, transcripts, trees, extension_mode, min_distance)
+                print(f"Added {len(added_utr)} 3' UTRs")
+                print("--" * 20)
+                logged_infos = extend_utr(
+                    genes, transcripts, trees, extension_mode, min_distance
+                )
                 # add the logged infos to the whole logging
                 for geneid in logged_infos:
                     whole_logging[geneid] = logged_infos[geneid]
                 recompose_gtf(genes, transcripts, outfile)
     print(f"Done.")
-    print(f"Successfully extended {len([x for x in whole_logging if whole_logging[x] > 0])} transcripts out of {len(whole_logging)} transcripts.")
+    print(
+        f"Successfully extended {len([x for x in whole_logging if whole_logging[x] > 0])} transcripts out of {len(whole_logging)} transcripts."
+    )
     outfile.close()
     if logfile:
-        with open(logfile, 'w') as f:
+        with open(logfile, "w") as f:
             for geneid in whole_logging:
-                f.write(f'{geneid}\t{whole_logging[geneid]}\n')
+                f.write(f"{geneid}\t{whole_logging[geneid]}\n")
