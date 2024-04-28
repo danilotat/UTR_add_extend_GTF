@@ -30,8 +30,14 @@ def other_entries(entry: GTF_record, transcript_collection: dict):
     try:
         transcript_id = entry.attributes["transcript_id"]
     except KeyError:
+        print(f"Error in the following entry:")
         print(entry.asStr())
+        print("The 'transcript_id' attribute is not found.")
         exit()
+    if transcript_id not in transcript_collection:
+        raise KeyError(
+            f"Transcript {transcript_id} not found in the collection. Please check the GTF file."
+        )
     if entry.feature_type == "exon":
         transcript_collection[transcript_id]._add_exon(entry)
     if entry.feature_type == "CDS":
@@ -46,7 +52,7 @@ def other_entries(entry: GTF_record, transcript_collection: dict):
         transcript_collection[transcript_id]._add_stopcodon(entry)
 
 
-def first_iteration(gtf: str) -> dict:
+def first_iteration(gtf: str) -> tuple:
     """
     The first iteration is used just to create a dependancy graph of the GTF file, using the IDs of the transcripts.
     This is used to know which record comes before and after each item, and which transcript has missing UTR
@@ -113,7 +119,7 @@ def first_iteration(gtf: str) -> dict:
                     if entry.attributes["gene_id"] not in genes:
                         genes[entry.attributes["gene_id"]] = gene(entry)
                         continue
-                if entry.feature_type == "transcript":
+                elif entry.feature_type == "transcript":
                     transcripts[entry.attributes["transcript_id"]] = transcript(entry)
                     # populate the genes dictionary
                     if entry.attributes["gene_id"] in genes.keys():
@@ -368,7 +374,7 @@ def chromosome_wise(gtf, outfile, extension_mode, min_distance, logfile=None):
                         if entry.attributes["gene_id"] not in genes:
                             genes[entry.attributes["gene_id"]] = gene(entry)
                             continue
-                    if entry.feature_type == "transcript":
+                    elif entry.feature_type == "transcript":
                         transcripts[entry.attributes["transcript_id"]] = transcript(
                             entry
                         )
@@ -381,6 +387,7 @@ def chromosome_wise(gtf, outfile, extension_mode, min_distance, logfile=None):
                             raise IndexError("Malformed gtf")
                     else:
                         other_entries(entry, transcripts)
+
                 # sort the trees
                 for strand in trees[chromosome]:
                     trees[chromosome][strand].branch._sort_entries()
