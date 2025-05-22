@@ -178,7 +178,7 @@ def add_utr(genes: dict, transcripts: dict):
                                         transcript.exons[-1].chromosome,
                                         transcript.source,
                                         "three_prime_utr",
-                                        transcript.stopcodon[0].end, 
+                                        transcript.stopcodon[0].end,
                                         transcript.end,
                                         transcript.score,
                                         transcript.strand,
@@ -200,7 +200,8 @@ def add_utr(genes: dict, transcripts: dict):
                                         transcript.source,
                                         "three_prime_utr",
                                         transcript.start,
-                                        transcript.cdss[-1].start - 4, #BUG: this may be wrong. 
+                                        transcript.cdss[-1].start
+                                        - 4,  # BUG: this may be wrong.
                                         transcript.score,
                                         transcript.strand,
                                         transcript.phase,

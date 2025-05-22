@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+
 def write_in_red(text: str):
     """
     Print the text in red color.
@@ -114,8 +115,10 @@ class GTF_record(object):
             return False
 
     def __repr__(self):
-        return f"{write_in_red("Feature type")}: {self.feature_type}\t{write_in_red("chr")}:{self.chromosome}\t{write_in_red("start")}:{self.start}\t{write_in_red("end")}:{self.end}\t{write_in_red("strand")}:({self.strand})\t{write_in_red("Length")}:{self.length}\t" \
-            f"{write_in_red('Attributes')}: {self.attributes}\n" 
+        return (
+            f"{write_in_red("Feature type")}: {self.feature_type}\t{write_in_red("chr")}:{self.chromosome}\t{write_in_red("start")}:{self.start}\t{write_in_red("end")}:{self.end}\t{write_in_red("strand")}:({self.strand})\t{write_in_red("Length")}:{self.length}\t"
+            f"{write_in_red('Attributes')}: {self.attributes}\n"
+        )
 
     def asStr(self):
         """
@@ -370,7 +373,9 @@ class transcript(GTF_record):
             if self.strand == "+":
                 # given that we're already checking the transcript whose end is the same of the gene,
                 # we could safely initialize both at the same value. It'll be adjusted later, if needed.
-                maximum_space = next_record.start - (self.cdss[-1].end + 4) # as we need to account for the stop codon.
+                maximum_space = next_record.start - (
+                    self.cdss[-1].end + 4
+                )  # as we need to account for the stop codon.
                 if maximum_space < min_distance:
                     return (self.attributes["transcript_id"], 0)
                 else:
@@ -408,14 +413,11 @@ class transcript(GTF_record):
                         )
                         self._add_threeprimeutr(ghostFeat)
                     else:
-                        extension_length = abs(
-                            self.threeprimeutrs[-1].end - utr_end
-                        )
+                        extension_length = abs(self.threeprimeutrs[-1].end - utr_end)
                         self.threeprimeutrs[-1].start = utr_start
                         self.threeprimeutrs[-1].end = utr_end
                         self.threeprimeutrs[-1].length = abs(
-                            self.threeprimeutrs[-1].end
-                            - self.threeprimeutrs[-1].start
+                            self.threeprimeutrs[-1].end - self.threeprimeutrs[-1].start
                         )
                     return (self.attributes["transcript_id"], extension_length)
             elif self.strand == "-":
