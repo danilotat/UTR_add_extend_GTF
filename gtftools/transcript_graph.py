@@ -1,5 +1,16 @@
 #!/usr/bin/python3
 
+def write_in_red(text: str):
+    """
+    Print the text in red color.
+
+    Parameters
+    ----------
+    text : str
+        The text to be printed in red color.
+    """
+    return f"\033[91m{text}\033[0m"
+
 
 class TreeNode(object):
     """
@@ -27,6 +38,10 @@ class TreeNode(object):
         self.start = start
         self.end = end
         self.length = abs(self.end - self.start)
+    
+    def __repr__(self):
+        return f"{write_in_red('geneID')}: {self.geneID}\t{write_in_red('start')}: {self.start}\t{write_in_red('end')}: {self.end}\t \
+               {write_in_red("Length")}: {self.length}"
 
 
 class TreeBranch(object):
@@ -75,7 +90,7 @@ class TreeBranch(object):
         if self.strand == "-":
             self.entries = {
                 k: v
-                for k, v in sorted(self.entries.items(), key=lambda item: item[1][1])
+                for k, v in sorted(self.entries.items(), key=lambda item: item[1][1], reverse=True)
             }
 
     def _query_previous(self, geneID: str) -> TreeNode:

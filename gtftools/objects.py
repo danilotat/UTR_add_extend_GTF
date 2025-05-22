@@ -1,4 +1,17 @@
 #!/usr/bin/python3
+
+def write_in_red(text: str):
+    """
+    Print the text in red color.
+
+    Parameters
+    ----------
+    text : str
+        The text to be printed in red color.
+    """
+    return f"\033[91m{text}\033[0m"
+
+
 class GTF_record(object):
     """
     A GTF record is the first building block of the parser.
@@ -99,6 +112,10 @@ class GTF_record(object):
             return True
         else:
             return False
+
+    def __repr__(self):
+        return f"{write_in_red("Feature type")}: {self.feature_type}\t{write_in_red("chr")}:{self.chromosome}\t{write_in_red("start")}:{self.start}\t{write_in_red("end")}:{self.end}\t{write_in_red("strand")}:({self.strand})\t{write_in_red("Length")}:{self.length}\t" \
+            f"{write_in_red('Attributes')}: {self.attributes}\n" 
 
     def asStr(self):
         """
@@ -353,42 +370,54 @@ class transcript(GTF_record):
             if self.strand == "+":
                 # given that we're already checking the transcript whose end is the same of the gene,
                 # we could safely initialize both at the same value. It'll be adjusted later, if needed.
-                maximum_space = next_record.start - self.cdss[-1].end
+                maximum_space = next_record.start - (self.cdss[-1].end + 4) # as we need to account for the stop codon.
                 if maximum_space < min_distance:
                     return (self.attributes["transcript_id"], 0)
                 else:
                     if extension_mode == "max":
-                        utr_start = self.cdss[-1].end
-                        utr_end = self.cdss[-1].end + maximum_space - min_distance
+                        utr_start = self.cdss[-1].end + 4
+                        utr_end = self.cdss[-1].end + 4 + maximum_space - min_distance
                     elif isinstance(extension_mode, int):
                         if extension_mode > maximum_space:
                             # the requested distance is higher than the available "space" on the chromosome.
                             # add just the minimum distance as requested.
                             # get the last cds
-                            utr_start = self.cdss[-1].end
+                            utr_start = self.cdss[-1].end + 4
                             utr_end = next_record.start - min_distance
                         else:
                             # we have enough space.
-                            utr_start = self.cdss[-1].end
-                            utr_end = self.cdss[-1].end + extension_mode
+                            utr_start = self.cdss[-1].end + 4
+                            utr_end = self.cdss[-1].end + 4 + extension_mode
                     # adjust also the transcript length based on that.
-                    edited_len = utr_end - self.cdss[-1].end
+                    edited_len = abs(utr_end - utr_start)
                     self._update_length(self.strand, utr_end)
                     geneEntry.end = utr_end
-                    # initialize a GTF record and assign the novel 3'UTR
-                    ghostFeat = GTF_record(
-                        self.chromosome,
-                        self.source,
-                        "three_prime_utr",
-                        utr_start,
-                        utr_end,
-                        self.score,
-                        self.strand,
-                        self.phase,
-                        self.attributes,
-                    )
-                    self._add_threeprimeutr(ghostFeat)
-                    return (self.attributes["transcript_id"], edited_len)
+                    # initialize a GTF record and assign the novel 3'UTR only if the 3'UTR is not already present.
+                    if len(self.threeprimeutrs) == 0:
+                        extension_length = abs(utr_end - utr_start)
+                        ghostFeat = GTF_record(
+                            self.chromosome,
+                            self.source,
+                            "three_prime_utr",
+                            utr_start,
+                            utr_end,
+                            self.score,
+                            self.strand,
+                            self.phase,
+                            self.attributes,
+                        )
+                        self._add_threeprimeutr(ghostFeat)
+                    else:
+                        extension_length = abs(
+                            self.threeprimeutrs[-1].end - utr_end
+                        )
+                        self.threeprimeutrs[-1].start = utr_start
+                        self.threeprimeutrs[-1].end = utr_end
+                        self.threeprimeutrs[-1].length = abs(
+                            self.threeprimeutrs[-1].end
+                            - self.threeprimeutrs[-1].start
+                        )
+                    return (self.attributes["transcript_id"], extension_length)
             elif self.strand == "-":
                 maximum_space = self.cdss[-1].start - next_record.end
                 if maximum_space < min_distance:

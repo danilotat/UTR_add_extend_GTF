@@ -178,7 +178,7 @@ def add_utr(genes: dict, transcripts: dict):
                                         transcript.exons[-1].chromosome,
                                         transcript.source,
                                         "three_prime_utr",
-                                        transcript.stopcodon[0].end,
+                                        transcript.stopcodon[0].end, 
                                         transcript.end,
                                         transcript.score,
                                         transcript.strand,
@@ -200,7 +200,7 @@ def add_utr(genes: dict, transcripts: dict):
                                         transcript.source,
                                         "three_prime_utr",
                                         transcript.start,
-                                        transcript.stopcodon[0].start,
+                                        transcript.cdss[-1].start - 4, #BUG: this may be wrong. 
                                         transcript.score,
                                         transcript.strand,
                                         transcript.phase,
@@ -395,6 +395,7 @@ def chromosome_wise(gtf, outfile, extension_mode, min_distance, logfile=None):
                 # let's do the extension
                 added_utr = add_utr(genes, transcripts)
                 print(f"Added {len(added_utr)} 3' UTRs")
+                print(added_utr)
                 print("--" * 20)
                 logged_infos = extend_utr(
                     genes, transcripts, trees, extension_mode, min_distance
